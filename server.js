@@ -1,7 +1,9 @@
 const express = require('express');
 const {graphqlHTTP} = require('express-graphql')
 const schema = require('./graphql/schema')
+const { connectDB } = require('./db/index')
 
+connectDB()
 const app = express();
 
 app.use('/graphql', graphqlHTTP({
