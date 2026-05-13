@@ -1,7 +1,7 @@
 const { GraphQLString, GraphQLID } = require("graphql");
-const { User, Post } = require("../models");
+const { User, Post, Comment } = require("../models");
 const { createJWTToken } = require("../util/auth");
-const { PostType } = require("./types");
+const { PostType, CommentType } = require("./types");
 
 const register = {
   type: GraphQLString,
@@ -118,4 +118,74 @@ const deletePost = {
   },
 };
 
-module.exports = { register, login, createPost, updatePost, deletePost };
+const addComment = {
+  type: CommentType,
+  description: "Add a commento to a post",
+  args: {
+    postId: { type: GraphQLID },
+    comment: { type: GraphQLString },
+  },
+  async resolve(_, { comment, postId }, { verifiedUser }) {
+    const newComment = new Comment({
+      comment,
+      postId,
+      userId: verifiedUser._id,
+    });
+    return newComment.save();
+  },
+};
+
+const updateComment = {
+  type: CommentType,
+  description: "Update a comment",
+  args: {
+    id: { type: GraphQLID },
+    comment: { type: GraphQLString },
+  },
+  async resolve(_, { id, comment }, { verifiedUser }) {
+    if (!verifiedUser) throw new Error("Unauthorized");
+
+    const commentUpdated = await Comment.findByIdAndUpdate(
+      {
+        _id: id,
+        userId: verifiedUser,
+      },
+      {
+        comment,
+      },
+    );
+
+    if (!commentUpdated) throw new Error("Comment not found");
+    return commentUpdated;
+  },
+};
+
+const deleteComment = {
+  type: GraphQLString,
+  description: "Delete a comment",
+  args: {
+    id: { type: GraphQLID },
+  },
+  async resolve(_, { id }, { verifiedUser }) {
+    if (!verifiedUser) throw new Error("Unauthorized");
+
+    const commentDelete = await Comment.findOneAndDelete({
+      _id: id,
+      userId: verifiedUser._id,
+    });
+
+    if (!commentDelete) throw new Error("Comment not found");
+
+    return "Comment deleted";
+  },
+};
+module.exports = {
+  register,
+  login,
+  createPost,
+  updatePost,
+  deletePost,
+  addComment,
+  updateComment,
+  deleteComment,
+};
